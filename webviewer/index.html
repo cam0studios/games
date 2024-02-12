@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Crawler</title>
+  <script src="https://cdn.jsdelivr.net/npm/eruda" onload="eruda.init()"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+    #data {
+      position: fixed;
+      bottom: 5px;
+      left: 5px;
+      color: white;
+      font-family: sans-serif;
+    }
+    a:visited {
+      color: darkgray;
+    }
+    a:not(:visited) {
+      color: white;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.js"></script>
+</head>
+<body>
+  <form id="urlForm"><input type="text" id="url" placeholder="URL"><input type="submit" value="Go!"></form>
+  <select id="colMode">
+    <option value="complex">Complexity</option>
+    <option value="scanned">Scanned</option>
+    <option value="connect">Connections</option>
+  </select>
+  <br/>
+  <input type="number" id="depth" placeholder="Depth">
+  <script src="main.js"></script>
+  <p id="data">Hover to get data</p>
+</body>
+</html>
