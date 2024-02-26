@@ -81,7 +81,7 @@ function track(url,n=0) {
   url = getUrl(url);
   console.log("fetching "+url);
   nodes[nodes.map(e=>e.u).indexOf(url)].scanned = true;
-  fetch("http://pikastinks.us.to:3000/corsProxy?url="+url)
+  fetch("http://pikastinks.us.to:8060/corsProxy?url="+url)
   .then(e=>e.text())
   .then((e) => {
     console.log("got "+url);
