@@ -117,6 +117,7 @@ function draw() {
         player.lvlUp *= 1.05;
         player.lvlUp += 10;
         player.score += 1000;
+        player.hp+=2;
         levelUp = true;
         let choices = [];
         upgrades.forEach((e) => {
@@ -533,19 +534,19 @@ function button(txt,yPos,i,style,fun,desc) {
     w = textWidth(txt)+15;
     h = 40;
   } else if(style==1) {
-    w = 200;
+    w = 300;
     h = 60;
   }
   let hover = (mouseX>size.x/2-w/2&&mouseY>yPos && mouseX<size.x/2+w/2&&mouseY<yPos+h);
   pauseBtns.push(hover&&mouseIsPressed);
   if(style==0) {
     fill(hover?130:110);
-    rect(size.x/2-w/2,yPos,w,40,10);
+    rect(size.x/2-w/2,yPos,w,h,10);
     fill(255);
     text(txt,size.x/2,yPos+30);
   } else if(style==1) {
     fill(hover?90:70);
-    rect(size.x/2-100,yPos,200,60,5);
+    rect(size.x/2-w/2,yPos,w,h,5);
     fill(255);
     text(txt,size.x/2,yPos+30);
     textSize(15);
