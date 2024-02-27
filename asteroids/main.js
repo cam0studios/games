@@ -1,8 +1,9 @@
 var asteroids,
 bullets,
 explosions,
-asteroidR,
-asteroidMR,
+pickups,
+asteroidReload,
+asteroidReloadTime,
 size,
 worldSize,
 pause,
@@ -26,8 +27,9 @@ function setup() {
   asteroids = [];
   bullets = [];
   explosions = [];
-  asteroidR = 0;
-  asteroidMR = 250;
+  pickups = [];
+  asteroidReload = 0;
+  asteroidReloadTime = 250;
   asteroidSpeed = 2;
   worldSize = v(1500,1500);
   size = v(innerWidth,innerHeight);
@@ -53,24 +55,25 @@ function setup() {
   player.lvl = 0;
   player.speed = 0.4;
   player.multishot = 1;
-  player.mReload = 4;
+  player.reloadTime = 4;
   player.spread = 0.1;
+  player.shield = false;
   frameRate(1000);
 }
 
 function draw() {
   if(!pause && !levelUp) {
-    if(asteroidR<=0) {
-      asteroidR = asteroidMR;
-      asteroidMR*=0.95;
-      if(asteroidMR<30) asteroidMR = 30;
+    if(asteroidReload<=0) {
+      asteroidReload = asteroidReloadTime;
+      asteroidReloadTime*=0.95;
+      if(asteroidReloadTime<30) asteroidReloadTime = 30;
       asteroidSpeed += 0.2;
       asteroids.push({
         pos:p5.Vector.add(player.pos,v(size.x/2,0).rotate(random()*2*PI-PI)),
         vel:v(random()*asteroidSpeed+asteroidSpeed,0).rotate(random()*2*PI-PI),
         size:40,hp:2});
     } else {
-      asteroidR-=0.03*deltaTime;
+      asteroidReload-=0.03*deltaTime;
     }
     player.pos.add(p5.Vector.mult(player.vel,deltaTime*0.03));
     player.vel.mult(0.95);
@@ -110,8 +113,8 @@ function draw() {
         let options = [
           {name:"Speed",f:()=>player.speed+=0.2,weight:1},
           {name:"Multishot",f:()=>player.multishot+=0.5,weight:0.3},
-          {name:"Reload",f:()=>player.mReload*=0.85,weight:0.8},
-          {name:"Health",f:()=>player.hp+=2,weight:0.9}
+          {name:"Reload",f:()=>player.reloadTime*=0.85,weight:0.8},
+          {name:"Health",f:()=>player.maxHp++,weight:0.9}
         ];
         let choices = [];
         options.forEach((e) => {
@@ -137,7 +140,7 @@ function draw() {
           });
           bullets[bullets.length-1].pos.add(p5.Vector.sub(bullets[bullets.length-1].vel,player.vel));
         }
-        player.reload = player.mReload;
+        player.reload = player.reloadTime;
       } else {
         player.reload-=deltaTime*0.03;
       }
@@ -271,6 +274,17 @@ function draw() {
       });
       bullets.forEach((e) => {
         line(e.pos.x, e.pos.y, e.pos.x-(e.vel.x-player.vel.x), e.pos.y-(e.vel.y-player.vel.y));
+      });
+      pickups.forEach((e,i) => {
+        if(e.type==0) fill("rgb(220,50,0)");
+        if(e.type==1) fill("rgb(50,150,250)");
+        circle(e.pos.x,e.pos.y,20);
+        let pos = p5.Vector.add(e.pos,v(xOff,yOff));
+        if(p5.Vector.sub(pos,player.pos).mag()<=50) {
+          pickups.splice(i,1);
+          if(e.type==0) player.hp++;
+          if(e.type==1) player.shield=true;
+        }
       });
       pop();
     }
@@ -471,7 +485,10 @@ function astSplit(pos,dir,size,vel,dst) {
   player.score += size>35?150:(size>25?100:75);
   player.xp += size>35?2:1;
   if(size>35 && random()>0.5) {
-    asteroidR = 0;
+    asteroidReload = 0;
+    if(random()>0.5) {
+      pickups.push({type:floor(random()*2),pos:pos});
+    }
   }
   if(size>=25) {
     let num = 3;//+Math.round(random());
