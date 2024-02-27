@@ -63,7 +63,7 @@ function setup() {
 
 function draw() {
   if(!pause && !levelUp) {
-    if(asteroidReload<=0) {
+    if(asteroidReload<=0 && player.alive) {
       asteroidReload = asteroidReloadTime;
       asteroidReloadTime*=0.95;
       if(asteroidReloadTime<30) asteroidReloadTime = 30;
@@ -111,15 +111,15 @@ function draw() {
         player.score += 1000;
         levelUp = true;
         let options = [
-          {name:"Speed",f:()=>player.speed+=0.2,weight:1},
-          {name:"Multishot",f:()=>player.multishot+=0.5,weight:0.3},
-          {name:"Reload",f:()=>player.reloadTime*=0.85,weight:0.8},
-          {name:"Health",f:()=>player.maxHp++,weight:0.9}
+          {name:"Speed",f:()=>player.speed+=0.2,weight:1,description:"Move faster"},
+          {name:"Multishot",f:()=>player.multishot+=1,weight:0.3,description:"Shoot more bullets"},
+          {name:"Reload",f:()=>player.reloadTime*=0.85,weight:0.8,description:"Shoot faster"},
+          {name:"Health",f:()=>player.maxHp++,weight:0.9,description:"More max health"}
         ];
         let choices = [];
         options.forEach((e) => {
           for(let n = 0; n < e.weight*20; n++) {
-            choices.push({name:e.name,f:e.f});
+            choices.push({name:e.name,f:e.f,description:e.description});
           }
         });
         levelUpgrades = [];
@@ -169,9 +169,10 @@ function draw() {
       
       if(player.alive) {
         let d = p5.Vector.sub(e.pos,player.pos);
-        if(d.mag()<e.size+15) {
+        if(d.mag()<e.size/2+25+player.shield*10) {
           if(player.iframe<=0) {
-            player.hp--;
+            if(player.shield) player.shield = false;
+            else player.hp--;
             e.hp--;
           }
           player.iframe = 10;
@@ -212,7 +213,7 @@ function draw() {
         }
         asteroids.forEach((t,ti) => {
           let d = p5.Vector.sub(e.pos,t.pos);
-          if(d.mag()<t.size+5) {
+          if(d.mag()<t.size/2+10) {
             bullets.splice(i,1);
             i--;
             t.hp--;
@@ -305,6 +306,12 @@ function draw() {
     if(player.iframe>0) fill(255);
     else fill(0);
     triangle(-15,-15,-15,15,20,0);
+    if(player.shield) {
+      fill("rgba(50,200,250,0.3)");
+      stroke("rgb(0,150,250)");
+      strokeWeight(5);
+      circle(0,0,65);
+    }
     pop();
   }
   pop();
@@ -439,10 +446,10 @@ function draw() {
       strokeWeight(1);
       text("Level Up!",size.x/2,100);
       levelUpgrades.forEach((e,i) => {
-        button(e.name,120+i*50,i,1,() => {
+        button(e.name,120+i*65,i,1,() => {
           e.f();
           levelUp = false;
-        });
+        },e.description);
       });
     }
     oldBtns = pauseBtns;
@@ -487,7 +494,7 @@ function astSplit(pos,dir,size,vel,dst) {
   if(size>35 && random()>0.5) {
     asteroidReload = 0;
     if(random()>0.5) {
-      pickups.push({type:floor(random()*2),pos:pos});
+      pickups.push({type:floor(random()*1.5),pos:pos});
     }
   }
   if(size>=25) {
@@ -505,18 +512,34 @@ function astSplit(pos,dir,size,vel,dst) {
     }
   }
 }
-function button(txt,yPos,i,style,fun) {
+function button(txt,yPos,i,style,fun,desc) {
   textSize(30);
   textAlign(CENTER);
   textStyle(NORMAL);
   textFont("monospace");
-  let w = textWidth(txt)+15;
-  let hover = (mouseX>size.x/2-w/2&&mouseY>yPos && mouseX<size.x/2+w/2&&mouseY<yPos+40);
+  let w,h;
+  if(style==0) {
+    w = textWidth(txt)+15;
+    h = 40;
+  } else if(style==1) {
+    w = 200;
+    h = 60;
+  }
+  let hover = (mouseX>size.x/2-w/2&&mouseY>yPos && mouseX<size.x/2+w/2&&mouseY<yPos+h);
   pauseBtns.push(hover&&mouseIsPressed);
-  fill(hover?130:110);
-  rect(size.x/2-w/2,yPos,w,40,10);
-  fill(255);
-  text(txt,size.x/2,yPos+30);
+  if(style==0) {
+    fill(hover?130:110);
+    rect(size.x/2-w/2,yPos,w,40,10);
+    fill(255);
+    text(txt,size.x/2,yPos+30);
+  } else if(style==1) {
+    fill(hover?90:70);
+    rect(size.x/2-100,yPos,200,60,5);
+    fill(255);
+    text(txt,size.x/2,yPos+30);
+    textSize(15);
+    text(desc,size.x/2,yPos+50);
+  }
   if(hover&&mouseIsPressed&&!oldBtns[i]) {
     fun();
   }
