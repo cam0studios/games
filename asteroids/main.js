@@ -138,7 +138,8 @@ function draw() {
           bullets.push({
             pos:player.pos.copy(),
             vel:p5.Vector.add(player.vel,v(player.projectileSpeed,0) .rotate(player.dir+i*player.spread-player.spread*(num-1)/2)),
-            dst:v(0,0)
+            dst:v(0,0),
+            playerVel:player.vel.copy()
           });
           bullets[bullets.length-1].pos.add(p5.Vector.sub(bullets[bullets.length-1].vel,player.vel));
         }
@@ -280,7 +281,7 @@ function draw() {
         ellipse(e.pos.x,e.pos.y,e.size,e.size);
       });
       bullets.forEach((e) => {
-        line(e.pos.x, e.pos.y, e.pos.x-(e.vel.x-player.vel.x), e.pos.y-(e.vel.y-player.vel.y));
+        line(e.pos.x, e.pos.y, e.pos.x-(e.vel.x-e.playerVel.x), e.pos.y-(e.vel.y-e.playerVel.y));
       });
       pickups.forEach((e,i) => {
         if(e.type==0) fill("rgb(220,50,0)");
@@ -506,7 +507,7 @@ function astSplit(pos,dir,size,vel,dst) {
   if(size>35 && random()>0.5) {
     asteroidReload = 0;
   }
-  if(random()<(size/100-0.2)*0.006*asteroidReloadTime+0.05) {
+  if(random()<(size/100-0.2)*0.006*asteroidReloadTime+0.01) {
     pickups.push({type:floor(random()*1.5),pos:pos});
   }
   if(size>=25) {
