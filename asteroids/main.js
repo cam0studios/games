@@ -17,6 +17,13 @@ player;
 if(!localStorage.getItem("highscore")) {
   localStorage.setItem("highscore",3000);
 }
+var upgrades = [
+  {name:"Speed",f:()=>player.speed+=0.2,weight:1,description:"You move faster"},
+  {name:"Multishot",f:()=>player.multishot+=1,weight:0.3,description:"Shoot more bullets"},
+  {name:"Reload",f:()=>player.reloadTime*=0.85,weight:0.8,description:"Shoot faster"},
+  {name:"Health",f:()=>{player.maxHp++;player.hp=player.maxHp},weight:0.9,description:"More max health"},
+  {name:"Projectile Speed",f:()=>player.projectileSpeed+=2,weight:1,description:"Your bullets move faster"}
+];
 
 function setup() {
   pause = false;
@@ -42,7 +49,7 @@ function setup() {
   player.pos = v(0,0);
   player.vel = v(0,0);
   player.dir = 0;
-  player.dV = 0;
+  player.dirVel = 0;
   player.reload = 0;
   player.hp = 5;
   player.maxHp = 5;
@@ -55,9 +62,10 @@ function setup() {
   player.lvl = 0;
   player.speed = 0.4;
   player.multishot = 1;
-  player.reloadTime = 4;
+  player.reloadTime = 5;
   player.spread = 0.1;
   player.shield = false;
+  player.projectileSpeed = 15;
   frameRate(1000);
 }
 
@@ -80,11 +88,11 @@ function draw() {
     if(player.alive) {
       let joy = v(keyIsDown(68)-keyIsDown(65), keyIsDown(83)-keyIsDown(87)).normalize();
       if(controls==0) {
-        let d = v(joy.y,0).rotate(player.dir).mult(-player.speed);
-        player.vel.add(d);
-        player.dV += joy.x*0.03;
-        player.dir += player.dV*deltaTime*0.03;
-        player.dV *= 0.9;
+        let dst = v(joy.y,0).rotate(player.dir).mult(-player.speed);
+        player.vel.add(dst);
+        player.dirVel += joy.x*0.03;
+        player.dir += player.dirVel*deltaTime*0.03;
+        player.dirVel *= 0.9;
       } else if (controls==1) {
         player.vel.add(p5.Vector.mult(joy,player.speed+0.1));
         player.dir = p5.Vector.sub(v(mouseX,mouseY),p5.Vector.div(size,2)).heading();
@@ -110,14 +118,8 @@ function draw() {
         player.lvlUp += 10;
         player.score += 1000;
         levelUp = true;
-        let options = [
-          {name:"Speed",f:()=>player.speed+=0.2,weight:1,description:"Move faster"},
-          {name:"Multishot",f:()=>player.multishot+=1,weight:0.3,description:"Shoot more bullets"},
-          {name:"Reload",f:()=>player.reloadTime*=0.85,weight:0.8,description:"Shoot faster"},
-          {name:"Health",f:()=>player.maxHp++,weight:0.9,description:"More max health"}
-        ];
         let choices = [];
-        options.forEach((e) => {
+        upgrades.forEach((e) => {
           for(let n = 0; n < e.weight*20; n++) {
             choices.push({name:e.name,f:e.f,description:e.description});
           }
@@ -130,12 +132,11 @@ function draw() {
         }
       }
       if((keyIsDown(32) || mouseIsPressed) && player.reload<=0) {
-        let n = round(player.multishot);
-        let t = player.spread;
-        for(let i = 0; i < n; i++) {
+        let num = round(player.multishot);
+        for(let i = 0; i < num; i++) {
           bullets.push({
             pos:player.pos.copy(),
-            vel:p5.Vector.add(player.vel,v(20,0) .rotate(player.dir+i*t-t*(n-1)/2)),
+            vel:p5.Vector.add(player.vel,v(player.projectileSpeed,0) .rotate(player.dir+i*player.spread-player.spread*(num-1)/2)),
             dst:v(0,0)
           });
           bullets[bullets.length-1].pos.add(p5.Vector.sub(bullets[bullets.length-1].vel,player.vel));
@@ -153,6 +154,10 @@ function draw() {
     }
 
     asteroids.forEach((e,i) => {
+      if(e.vel.mag()>10) {
+        e.vel.normalize();
+        e.vel.mult(10);
+      }
       e.pos.add(e.vel);
       if(e.pos.x>worldSize.x/2) {
         e.pos.x -= worldSize.x;
@@ -168,24 +173,24 @@ function draw() {
       }
       
       if(player.alive) {
-        let d = p5.Vector.sub(e.pos,player.pos);
-        if(d.mag()<e.size/2+25+player.shield*10) {
+        let dst = p5.Vector.sub(e.pos,player.pos);
+        if(dst.mag()<e.size/2+25+player.shield*10) {
           if(player.iframe<=0) {
             if(player.shield) player.shield = false;
             else player.hp--;
             e.hp--;
           }
           player.iframe = 10;
-          d = d.normalize();
-          d.mult(e.size+15);
+          dst = dst.normalize();
+          dst.mult(e.size+15);
           e.pos = player.pos.copy();
-          e.pos.add(d);
+          e.pos.add(dst);
           e.vel.sub(player.vel);
-          e.vel.reflect(d);
+          e.vel.reflect(dst);
           e.pos.add(e.vel);
           e.vel.add(player.vel);
           if(e.hp<=0) {
-            astSplit(e.pos,d.heading()+PI,e.size,e.vel,e.size+15);
+            astSplit(e.pos,dst.heading()+PI,e.size,e.vel,e.size+15);
             asteroids.splice(i,1);
             i--;
           }
@@ -194,7 +199,7 @@ function draw() {
     });
     bullets.forEach((e,i) => {
       e.pos.add(p5.Vector.mult(e.vel,deltaTime*0.03));
-      e.dst.add(p5.Vector.mult(e.vel,deltaTime*0.03));
+      e.dst.add(p5.Vector.mult(p5.Vector.sub(e.vel,player.vel),deltaTime*0.03));
       let s = -e.vel.mag();
       if(e.dst.x>worldSize.x/2+s || e.dst.y>worldSize.y/2+s || e.dst.x<-worldSize.x/2-s || e.dst.y<-worldSize.y/2-s) {
         bullets.splice(i,1);
@@ -212,8 +217,8 @@ function draw() {
           e.pos.y += worldSize.y;
         }
         asteroids.forEach((t,ti) => {
-          let d = p5.Vector.sub(e.pos,t.pos);
-          if(d.mag()<t.size/2+10) {
+          let dst = p5.Vector.sub(e.pos,t.pos);
+          if(dst.mag()<t.size/2+10) {
             bullets.splice(i,1);
             i--;
             t.hp--;
@@ -297,9 +302,9 @@ function draw() {
     push();
     if(controls==0) {
       strokeWeight(2);
-      for(let d = 30; d < 500; d+=10) {
-        stroke("rgba(255,255,255,"+75/(d+60)+")");
-        line(d,0,d+5,0);
+      for(let dst = 30; dst < 500; dst+=10) {
+        stroke("rgba(255,255,255,"+75/(dst+60)+")");
+        line(dst,0,dst+5,0);
       }
     }
     pop();
@@ -373,9 +378,15 @@ function draw() {
     asteroids.forEach((e) => {
       ellipse(e.pos.x,e.pos.y,e.size,e.size);
     });
+    pickups.forEach((e) => {
+      if(e.type==0) fill("rgb(220,50,0)");
+      if(e.type==1) fill("rgb(50,150,250)");
+      circle(e.pos.x,e.pos.y,40);
+    });
     push();
     translate(player.pos);
     rotate(player.dir);
+    fill(255);
     triangle(-20,-25,-20,25,35,0);
     pop();
     pop();
@@ -493,9 +504,9 @@ function astSplit(pos,dir,size,vel,dst) {
   player.xp += size>35?2:1;
   if(size>35 && random()>0.5) {
     asteroidReload = 0;
-    if(random()>0.5) {
-      pickups.push({type:floor(random()*1.5),pos:pos});
-    }
+  }
+  if(random()<(size/100-0.2)*0.006*asteroidReloadTime+0.05) {
+    pickups.push({type:floor(random()*1.5),pos:pos});
   }
   if(size>=25) {
     let num = 3;//+Math.round(random());
