@@ -24,6 +24,37 @@ var upgrades = [
   {name:"Health",f:()=>{player.maxHp++;player.hp=player.maxHp},weight:0.9,description:"More max health"},
   {name:"Projectile Speed",f:()=>player.projectileSpeed+=2,weight:1,description:"Your bullets move faster"}
 ];
+var picks = [
+  {col:"rgb(220,50,0)", collect:()=>player.hp++,
+    draw:()=>{
+      fill("rgb(220,50,0)");
+      stroke("rgb(190,40,0)");
+      strokeWeight(5);
+      beginShape();
+      vertex(0,10);
+      vertex(-13,-5);
+      vertex(-6,-11);
+      vertex(0,-5);
+      vertex(6,-11);
+      vertex(13,-5);
+      vertex(0,10);
+      endShape();
+  }},
+  {col:"rgb(50,150,250)", collect:()=>player.shield=true,
+    draw:()=>{
+      fill("rgb(50,150,250)");
+      stroke("rgb(50,130,220)");
+      strokeWeight(5);
+      beginShape();
+      vertex(0,10);
+      vertex(-10,0);
+      vertex(-10,-10);
+      vertex(10,-10);
+      vertex(10,0);
+      vertex(0,10);
+      endShape();
+  }}
+];
 
 function setup() {
   pause = false;
@@ -67,6 +98,12 @@ function setup() {
   player.shield = false;
   player.projectileSpeed = 15;
   frameRate(1000);
+  
+  // testing, all pickups
+  let n = 2;
+  for(let i = 0; i < n; i++) {
+    pickups.push({pos:v(i*100-n*50+50,-100),type:i})
+  }
 }
 
 function draw() {
@@ -284,14 +321,14 @@ function draw() {
         line(e.pos.x, e.pos.y, e.pos.x-(e.vel.x-e.playerVel.x), e.pos.y-(e.vel.y-e.playerVel.y));
       });
       pickups.forEach((e,i) => {
-        if(e.type==0) fill("rgb(220,50,0)");
-        if(e.type==1) fill("rgb(50,150,250)");
-        circle(e.pos.x,e.pos.y,20);
+        push();
+        translate(e.pos);
+        picks[e.type].draw();
+        pop();
         let pos = p5.Vector.add(e.pos,v(xOff,yOff));
         if(p5.Vector.sub(pos,player.pos).mag()<=50) {
           pickups.splice(i,1);
-          if(e.type==0) player.hp++;
-          if(e.type==1) player.shield=true;
+          picks[e.type].collect();
         }
       });
       pop();
@@ -326,8 +363,19 @@ function draw() {
     for(let i = 0; i < player.maxHp; i++) {
       fill(player.hp>=(i+1)?255:0);
       stroke(255);
-      strokeWeight(4);
-      ellipse(30+i*35,30,20,20);
+      strokeWeight(3);
+      push();
+      translate(30+i*35,25);
+      beginShape();
+      vertex(0,15);
+      vertex(-13,2);
+      vertex(-7,-4);
+      vertex(0,2);
+      vertex(7,-4);
+      vertex(13,2);
+      vertex(0,15);
+      endShape();
+      pop();
     }
     
     fill(255);
@@ -381,8 +429,7 @@ function draw() {
       ellipse(e.pos.x,e.pos.y,e.size,e.size);
     });
     pickups.forEach((e) => {
-      if(e.type==0) fill("rgb(220,50,0)");
-      if(e.type==1) fill("rgb(50,150,250)");
+      fill(picks[e.type].col);
       circle(e.pos.x,e.pos.y,40);
     });
     push();
@@ -436,6 +483,7 @@ function draw() {
       });
       button("Quit",260,2,0,() => {
         player.hp = 0;
+        pause = false;
       });
       textSize(25);
       text("Control Layout:",size.x/2,200);
