@@ -25,7 +25,7 @@ var upgrades = [
   {name:"Projectile Speed",f:()=>player.projectileSpeed+=2,weight:1,description:"Your bullets move faster"}
 ];
 var picks = [
-  {col:"rgb(220,50,0)", collect:()=>player.hp++,
+  {col:"rgb(220,50,0)", weight:1, collect:()=>player.hp++,
     draw:()=>{
       fill("rgb(220,50,0)");
       stroke("rgb(190,40,0)");
@@ -40,7 +40,7 @@ var picks = [
       vertex(0,10);
       endShape();
   }},
-  {col:"rgb(50,150,250)", collect:()=>player.shield=true,
+  {col:"rgb(50,150,250)", weight:0.7, collect:()=>player.shield=true,
     draw:()=>{
       fill("rgb(50,150,250)");
       stroke("rgb(50,130,220)");
@@ -53,6 +53,15 @@ var picks = [
       vertex(10,0);
       vertex(0,10);
       endShape();
+  }},
+  {col:"rgb(230,200,50)", weight:0.3, collect:()=>{player.score+=1000;player.xp+=100},
+    draw:()=>{
+      fill("rgb(230,200,50)");
+      stroke("rgb(200,180,40)");
+      strokeWeight(5);
+      circle(0,0,25);
+      stroke("rgb(210,190,40)");
+      line(0,-5,0,5);
   }}
 ];
 
@@ -100,9 +109,8 @@ function setup() {
   frameRate(1000);
   
   // testing, all pickups
-  let n = 2;
-  for(let i = 0; i < n; i++) {
-    pickups.push({pos:v(i*100-n*50+50,-100),type:i})
+  for(let i = 0; i < picks.length; i++) {
+    pickups.push({pos:v(i*100-picks.length*50+50,-100),type:i})
   }
 }
 
@@ -555,8 +563,12 @@ function astSplit(pos,dir,size,vel,dst) {
   if(size>35 && random()>0.5) {
     asteroidReload = 0;
   }
-  if(random()<(size/100-0.2)*0.006*asteroidReloadTime+0.01) {
-    pickups.push({type:floor(random()*1.5),pos:pos});
+  if(random()<(size/100-0.2)*0.003*asteroidReloadTime+0.01) {
+    let choices = [];
+    picks.forEach((e,i) => {
+      for(let n=0; n<e.weight*20; n++) choices.push(i);
+    });
+    pickups.push({type:floor(random()*picks.length),pos:pos});
   }
   if(size>=25) {
     let num = 3;//+Math.round(random());
