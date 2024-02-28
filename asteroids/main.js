@@ -11,6 +11,7 @@ pauseKey,
 pauseBtns,
 oldBtns,
 controls=1,
+timer,
 levelUp,
 levelUpgrades,
 player;
@@ -18,14 +19,17 @@ if(!localStorage.getItem("highscore")) {
   localStorage.setItem("highscore",3000);
 }
 var upgrades = [
-  {name:"Speed",f:()=>player.speed+=0.2,weight:1,description:"You move faster"},
-  {name:"Multishot",f:()=>player.multishot+=1,weight:0.3,description:"Shoot more bullets"},
-  {name:"Reload",f:()=>player.reloadTime*=0.85,weight:0.8,description:"Shoot faster"},
-  {name:"Health",f:()=>{player.maxHp++;player.hp=player.maxHp},weight:0.9,description:"More max health"},
-  {name:"Projectile Speed",f:()=>player.projectileSpeed+=2,weight:1,description:"Your bullets move faster"}
+  {name:"Speed",f:()=>player.speed+=0.2,weight:1,description:"You move faster",max:15},
+  {name:"Multishot",f:()=>player.multishot+=1,weight:0.3,description:"Shoot more bullets",max:10},
+  {name:"Reload",f:()=>player.reloadTime*=0.85,weight:0.8,description:"Shoot faster",max:10},
+  {name:"Health",f:()=>{player.maxHp++;player.hp=player.maxHp},weight:0.9,description:"More max health",max:5},
+  {name:"Projectile Speed",f:()=>player.projectileSpeed+=2,weight:1,description:"Your bullets move faster",max:10}
 ];
 var picks = [
-  {col:"rgb(220,50,0)", weight:1, collect:()=>player.hp++,
+  {
+    col:"rgb(220,50,0)",
+    weight:1,
+    collect:()=>{player.hp++;player.score+=350;},
     draw:()=>{
       fill("rgb(220,50,0)");
       stroke("rgb(190,40,0)");
@@ -40,7 +44,10 @@ var picks = [
       vertex(0,10);
       endShape();
   }},
-  {col:"rgb(50,150,250)", weight:0.7, collect:()=>player.shield=true,
+  {
+    col:"rgb(50,150,250)",
+    weight:0.7,
+    collect:()=>{player.shield=true;player.score+=350;},
     draw:()=>{
       fill("rgb(50,150,250)");
       stroke("rgb(50,130,220)");
@@ -66,6 +73,9 @@ var picks = [
 ];
 
 function setup() {
+  upgrades.forEach((e) => {
+    e.times = 0;
+  });
   pause = false;
   pauseKey = false;
   levelUp = false;
@@ -78,6 +88,7 @@ function setup() {
   asteroidReload = 0;
   asteroidReloadTime = 250;
   asteroidSpeed = 2;
+  timer = 0;
   worldSize = v(1500,1500);
   size = v(innerWidth,innerHeight);
   if(size.x>worldSize.x-10) size.x=worldSize.x-10;
@@ -124,13 +135,14 @@ function draw() {
       asteroids.push({
         pos:p5.Vector.add(player.pos,v(size.x/2,0).rotate(random()*2*PI-PI)),
         vel:v(random()*asteroidSpeed+asteroidSpeed,0).rotate(random()*2*PI-PI),
-        size:40,hp:2});
+        size:40,hp:2+floor(timer/300)});
     } else {
       asteroidReload-=0.03*deltaTime;
     }
     player.pos.add(p5.Vector.mult(player.vel,deltaTime*0.03));
     player.vel.mult(0.95);
     if(player.alive) {
+      timer += deltaTime*0.001;
       let joy = v(keyIsDown(68)-keyIsDown(65), keyIsDown(83)-keyIsDown(87)).normalize();
       if(controls==0) {
         let dst = v(joy.y,0).rotate(player.dir).mult(-player.speed);
@@ -165,9 +177,9 @@ function draw() {
         player.hp+=2;
         levelUp = true;
         let choices = [];
-        upgrades.forEach((e) => {
+        upgrades.forEach((e,i) => {
           for(let n = 0; n < e.weight*20; n++) {
-            choices.push({name:e.name,f:e.f,description:e.description});
+            choices.push({name:e.name,f:e.f,description:e.description,i:i});
           }
         });
         levelUpgrades = [];
@@ -184,7 +196,8 @@ function draw() {
             pos:player.pos.copy(),
             vel:p5.Vector.add(player.vel,v(player.projectileSpeed,0) .rotate(player.dir+i*player.spread-player.spread*(num-1)/2)),
             dst:v(0,0),
-            playerVel:player.vel.copy()
+            playerVel:player.vel.copy(),
+            dmg:0.7/(1+abs(i-(num-1)/2))+0.3
           });
           bullets[bullets.length-1].pos.add(p5.Vector.sub(bullets[bullets.length-1].vel,player.vel));
         }
@@ -268,7 +281,7 @@ function draw() {
           if(dst.mag()<t.size/2+10) {
             bullets.splice(i,1);
             i--;
-            t.hp--;
+            t.hp-=e.dmg;
             if(t.hp<=0) {
               astSplit(t.pos.copy(),e.vel.heading(),t.size,t.vel.copy(),t.size);
               asteroids.splice(ti,1);
@@ -411,6 +424,11 @@ function draw() {
     fill(255);
     rect(20,54,160*player.xp/player.lvlUp,10);
     
+    textSize(40);
+    textAlign(CENTER);
+    let sec = floor(timer%60).toString();
+    text(`${floor(timer/60)}:${sec.length==1?"0"+sec:sec}`,size.x/2,40);
+    
     fill("rgba(0,0,0,0.5)");
     stroke(250);
     strokeWeight(3);
@@ -525,9 +543,16 @@ function draw() {
       levelUpgrades.forEach((e,i) => {
         button(e.name,120+i*65,i,1,() => {
           e.f();
+          upgrades[e.i].times++;
           levelUp = false;
         },e.description);
       });
+      if(levelUpgrades.length==0) {
+        button("Next",120,0,1,()=>{
+          levelUp = false;
+          player.score += 2000;
+        },"Adds 2000 xp");
+      }
     }
     oldBtns = pauseBtns;
   }
@@ -571,7 +596,7 @@ function astSplit(pos,dir,size,vel,dst) {
   if(size>35 && random()>0.5) {
     asteroidReload = 0;
   }
-  if(random()<(size/100-0.2)*0.001*asteroidReloadTime+0.01) {
+  if(random()<(size/100-0.2)*150/(timer+200)+0.01) {
     let choices = [];
     picks.forEach((e,i) => {
       for(let n=0; n<e.weight*20; n++) choices.push(i);
@@ -585,7 +610,7 @@ function astSplit(pos,dir,size,vel,dst) {
         pos:pos.copy(),
         vel:p5.Vector.add(vel, v(3,0) .rotate(dir+i)),
         size:size/4*3,
-        hp:1
+        hp:1+floor(timer/300)*0.5
       });
       asteroids[asteroids.length-1].pos.add(
         p5.Vector.mult(p5.Vector.sub(asteroids[asteroids.length-1].vel,vel),dst/6)
