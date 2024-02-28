@@ -563,7 +563,7 @@ function astSplit(pos,dir,size,vel,dst) {
   if(size>35 && random()>0.5) {
     asteroidReload = 0;
   }
-  if(random()<(size/100-0.2)*0.003*asteroidReloadTime+0.01) {
+  if(random()<(size/100-0.2)*0.001*asteroidReloadTime+0.01) {
     let choices = [];
     picks.forEach((e,i) => {
       for(let n=0; n<e.weight*20; n++) choices.push(i);
