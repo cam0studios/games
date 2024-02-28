@@ -10,7 +10,7 @@ pause,
 pauseKey,
 pauseBtns,
 oldBtns,
-controls=1,
+prefers={controls:1,showArrows:true},
 timer,
 levelUp,
 levelUpgrades,
@@ -144,13 +144,13 @@ function draw() {
     if(player.alive) {
       timer += deltaTime*0.001;
       let joy = v(keyIsDown(68)-keyIsDown(65), keyIsDown(83)-keyIsDown(87)).normalize();
-      if(controls==0) {
+      if(prefers.controls==0) {
         let dst = v(joy.y,0).rotate(player.dir).mult(-player.speed);
         player.vel.add(dst);
         player.dirVel += joy.x*0.03;
         player.dir += player.dirVel*deltaTime*0.03;
         player.dirVel *= 0.9;
-      } else if (controls==1) {
+      } else if (prefers.controls==1) {
         player.vel.add(p5.Vector.mult(joy,player.speed+0.1));
         player.dir = p5.Vector.sub(v(mouseX,mouseY),p5.Vector.div(size,2)).heading();
       }
@@ -364,7 +364,7 @@ function draw() {
     push();
     rotate(player.dir);
     push();
-    if(controls==0) {
+    if(prefers.controls==0) {
       strokeWeight(2);
       for(let dst = 30; dst < 500; dst+=10) {
         stroke("rgba(255,255,255,"+75/(dst+60)+")");
@@ -383,12 +383,43 @@ function draw() {
     }
     pop();
   }
+  if(player.alive) {
+    if(prefers.showArrows) {
+      pickups.forEach((e) => {
+        let pos = p5.Vector.add(e.pos,e.closest);
+        let dif = p5.Vector.sub(player.pos,pos);
+        let render = false;
+        let s = p5.Vector.sub(size,v(20,20));
+        if(dif.x <= -s.x/2) {
+          render = true;
+          dif.div(dif.x/(-s.x/2));
+        }
+        if(dif.y <= -s.y/2) {
+          render = true;
+          dif.div(dif.y/(-s.y/2));
+        }
+        if(dif.x >= s.x/2) {
+          render = true;
+          dif.div(dif.x/(s.x/2));
+        }
+        if(dif.y >= s.y/2) {
+          render = true;
+          dif.div(dif.y/(s.y/2));
+        }
+        if(render) {
+          push();
+          translate(p5.Vector.mult(dif,-1));
+          rotate(dif.heading());
+          fill(picks[e.type].col);
+          noStroke();
+          triangle(10,-10,10,10,-15,0);
+          pop();
+        }
+      });
+    }
+  }
   pop();
   if(player.alive) {
-    pickups.forEach((e) => {
-      let pos = p5.Vector.add(e.pos,e.closest);
-      let dif = p5.Vector.sub(player.pos,pos);
-    });
     for(let i = 0; i < player.maxHp; i++) {
       fill(player.hp>=(i+1)?255:0);
       stroke(255);
@@ -509,18 +540,19 @@ function draw() {
         pause = false;
       });
       let controlLayouts = ["AD Turning","Mouse+WASD"];
-      button(controlLayouts[controls],210,1,0,() => {
-        controls++;
-        if(controls>controlLayouts.length-1) {
-          controls-=controlLayouts.length;
+      button(controlLayouts[prefers.controls],210,1,0,() => {
+        prefers.controls++;
+        if(prefers.controls>controlLayouts.length-1) {
+          prefers.controls-=controlLayouts.length;
         }
       });
       button("Quit",260,2,0,() => {
         player.hp = 0;
         pause = false;
       });
-      textSize(25);
-      text("Control Layout:",size.x/2,200);
+      button(prefers.showArrows?"Yes":"No",360,3,0,() => {
+        prefers.showArrows = !prefers.showArrows;
+      });
       
       textSize(40);
       textAlign(CENTER);
@@ -530,6 +562,10 @@ function draw() {
       stroke(255);
       strokeWeight(1);
       text("Paused",size.x/2,100);
+      
+      textSize(25);
+      text("Control Layout:",size.x/2,200);
+      text("Show Arrows:",size.x/2,350);
     }
     if(levelUp) {
       textSize(40);
@@ -570,7 +606,7 @@ function draw() {
   strokeWeight(4);
   push();
   translate(mouseX,mouseY);
-  if(controls==1 && !pause && !levelUp) {
+  if(prefers.controls==1 && !pause && !levelUp) {
     line(-15,-10,-10,-15);
     line(15,10,10,15);
     line(-15,10,-10,15);
@@ -596,7 +632,7 @@ function astSplit(pos,dir,size,vel,dst) {
   if(size>35 && random()>0.5) {
     asteroidReload = 0;
   }
-  if(random()<(size/100-0.2)*150/(timer+200)+0.01) {
+  if(random()<(size/100-0.2)*100/(timer+200)+0.01) {
     let choices = [];
     picks.forEach((e,i) => {
       for(let n=0; n<e.weight*20; n++) choices.push(i);
