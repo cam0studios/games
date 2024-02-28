@@ -54,7 +54,7 @@ var picks = [
       vertex(0,10);
       endShape();
   }},
-  {col:"rgb(230,200,50)", weight:0.3, collect:()=>{player.score+=1000;player.xp+=100},
+  {col:"rgb(230,200,50)", weight:0.3, collect:()=>{player.score+=1000;player.xp+=35},
     draw:()=>{
       fill("rgb(230,200,50)");
       stroke("rgb(200,180,40)");
@@ -159,8 +159,8 @@ function draw() {
       if(player.xp>player.lvlUp) {
         player.lvl++;
         player.xp -=player.lvlUp;
-        player.lvlUp *= 1.05;
         player.lvlUp += 10;
+        player.lvlUp *= 1.1;
         player.score += 1000;
         player.hp+=2;
         levelUp = true;
@@ -309,6 +309,7 @@ function draw() {
   translate(size.x/2,size.y/2);
   push();
   translate(-player.pos.x,-player.pos.y);
+  pickups.forEach((e) => {e.closest = v(0,0)});
   for(let xOff=-worldSize.x; xOff<=worldSize.x; xOff+=worldSize.x) {
     for(let yOff=-worldSize.y; yOff<=worldSize.y; yOff+=worldSize.y) {
       push();
@@ -337,6 +338,9 @@ function draw() {
         if(p5.Vector.sub(pos,player.pos).mag()<=50) {
           pickups.splice(i,1);
           picks[e.type].collect();
+        }
+        if(p5.Vector.sub(pos,player.pos).mag()<p5.Vector.sub(p5.Vector.add(e.pos,e.closest),player.pos)) {
+          e.closest = v(xOff,yOff);
         }
       });
       pop();
@@ -368,6 +372,10 @@ function draw() {
   }
   pop();
   if(player.alive) {
+    pickups.forEach((e) => {
+      let pos = p5.Vector.add(e.pos,e.closest);
+      let dif = p5.Vector.sub(player.pos,pos);
+    });
     for(let i = 0; i < player.maxHp; i++) {
       fill(player.hp>=(i+1)?255:0);
       stroke(255);
