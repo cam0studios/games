@@ -81,7 +81,9 @@ function track(url,n=0) {
   url = getUrl(url);
   console.log("fetching "+url);
   nodes[nodes.map(e=>e.u).indexOf(url)].scanned = true;
-  fetch("http://pikastinks.us.to:8060/corsProxy?url="+url)
+  fetch("corsanywhere.vercel.app/"+url,body:JSON.stringify({
+    "origin": "cam0studios.github.io"
+  }))
   .then(e=>e.text())
   .then((e) => {
     console.log("got "+url);
